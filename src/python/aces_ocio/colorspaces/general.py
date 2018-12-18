@@ -8,6 +8,7 @@ Implements support for general colorspaces conversions and transfer functions.
 from __future__ import division
 
 import array
+import copy
 import os
 
 import PyOpenColorIO as ocio
@@ -17,7 +18,7 @@ from aces_ocio.colorspaces import aces
 from aces_ocio.utilities import ColorSpace, mat44_from_mat33
 
 __author__ = 'ACES Developers'
-__copyright__ = 'Copyright (C) 2014 - 2015 - ACES Developers'
+__copyright__ = 'Copyright (C) 2014 - 2016 - ACES Developers'
 __license__ = ''
 __maintainer__ = 'ACES Developers'
 __email__ = 'aces@oscars.org'
@@ -43,23 +44,25 @@ def create_matrix_colorspace(name='matrix',
                              to_reference_values=None,
                              aliases=None):
     """
-    Creates a ColorSpace that only uses *Matrix Transforms*
+    Creates a colorspace that only uses *Matrix Transforms*.
 
     Parameters
     ----------
     name : str, optional
         Aliases for this colorspace
     from_reference_values : list of matrices
-        List of matrices to convert from the reference colorspace to this space        
+        List of matrices to convert from the reference colorspace to this
+        colorspace.
     to_reference_values : list of matrices
-        List of matrices to convert to the reference colorspace from this space
+        List of matrices to convert to the reference colorspace from this
+        colorspace.
     aliases : list of str, optional
-        Aliases for this colorspace
+        Aliases for this colorspace.
 
     Returns
     -------
     ColorSpace
-         A *Matrix Transform*-based ColorSpace
+         A *Matrix Transform*-based colorspace.
     """
 
     if from_reference_values is None:
@@ -111,27 +114,27 @@ def create_transfer_colorspace(name='transfer',
                                lut_resolution_1d=1024,
                                aliases=None):
     """
-    Creates a ColorSpace that only uses transfer functions encoded as 1D LUTs
+    Creates a colorspace that only uses transfer functions encoded as 1D LUTs.
 
     Parameters
     ----------
     name : str, optional
-        Aliases for this colorspace
+        Aliases for this colorspace.
     transfer_function_name : str, optional
-        The name of the transfer function
+        The name of the transfer function.
     transfer_function : function, optional
-        The transfer function to be evaluated
+        The transfer function to be evaluated.
     lut_directory : str or unicode 
-        The directory to use when generating LUTs
+        The directory to use when generating LUTs.
     lut_resolution_1d : int
-        The resolution of generated 1D LUTs
+        The resolution of generated 1D LUTs.
     aliases : list of str
-        Aliases for this colorspace
+        Aliases for this colorspace.
 
     Returns
     -------
     ColorSpace
-         A *LUT1D Transform*-based ColorSpace representing a transfer function
+         A *LUT1D Transform*-based colorspace representing a transfer function.
     """
 
     if aliases is None:
@@ -190,33 +193,35 @@ def create_matrix_plus_transfer_colorspace(
         to_reference_values=None,
         aliases=None):
     """
-    Creates a ColorSpace that uses transfer functions encoded as 1D LUTs and
-    matrice
+    Creates a colorspace that uses transfer functions encoded as 1D LUTs and
+    matrix
 
     Parameters
     ----------
     name : str, optional
-        Aliases for this colorspace
+        Aliases for this colorspace.
     transfer_function_name : str, optional
-        The name of the transfer function
+        The name of the transfer function.
     transfer_function : function, optional
-        The transfer function to be evaluated
+        The transfer function to be evaluated.
     lut_directory : str or unicode 
-        The directory to use when generating LUTs
+        The directory to use when generating LUTs.
     lut_resolution_1d : int
-        The resolution of generated 1D LUTs
+        The resolution of generated 1D LUTs.
     from_reference_values : list of matrices
-        List of matrices to convert from the reference colorspace to this space        
+        List of matrices to convert from the reference colorspace to this
+        colorspace.
     to_reference_values : list of matrices
-        List of matrices to convert to the reference colorspace from this space
+        List of matrices to convert to the reference colorspace from this
+        colorspace.
     aliases : list of str
-        Aliases for this colorspace
+        Aliases for this colorspace.
 
     Returns
     -------
     ColorSpace
-         A *Matrx and LUT1D Transform*-based ColorSpace representing a transfer 
-         function and matrix
+         A *Matrx and LUT1D Transform*-based colorspace representing a transfer
+         function and matrix.
     """
 
     if from_reference_values is None:
@@ -290,18 +295,19 @@ def create_matrix_plus_transfer_colorspace(
 # Transfer functions for standard colorspaces.
 def transfer_function_sRGB_to_linear(v):
     """
-    The sRGB (IEC 61966-2-1) transfer function
+    The sRGB (IEC 61966-2-1) transfer function.
 
     Parameters
     ----------
     v : float
-        The normalized value to pass through the function
+        The normalized value to pass through the function.
 
     Returns
     -------
     float
-        A converted value
+        A converted value.
     """
+
     a = 1.055
     b = 0.04045
     d = 12.92
@@ -314,18 +320,19 @@ def transfer_function_sRGB_to_linear(v):
 
 def transfer_function_Rec709_to_linear(v):
     """
-    The Rec.709 transfer function
+    The Rec.709 transfer function.
 
     Parameters
     ----------
     v : float
-        The normalized value to pass through the function
+        The normalized value to pass through the function.
 
     Returns
     -------
     float
-        A converted value
+        A converted value.
     """
+
     a = 1.099
     b = 0.018
     d = 4.5
@@ -339,18 +346,19 @@ def transfer_function_Rec709_to_linear(v):
 
 def transfer_function_Rec2020_10bit_to_linear(v):
     """
-    The Rec.2020 10-bit transfer function
+    The Rec.2020 10-bit transfer function.
 
     Parameters
     ----------
     v : float
-        The normalized value to pass through the function
+        The normalized value to pass through the function.
 
     Returns
     -------
     float
-        A converted value
+        A converted value.
     """
+
     a = 1.099
     b = 0.018
     d = 4.5
@@ -364,18 +372,19 @@ def transfer_function_Rec2020_10bit_to_linear(v):
 
 def transfer_function_Rec2020_12bit_to_linear(v):
     """
-    The Rec.2020 12-bit transfer function
+    The Rec.2020 12-bit transfer function.
 
     Parameters
     ----------
     v : float
-        The normalized value to pass through the function
+        The normalized value to pass through the function.
 
     Returns
     -------
     float
-        A converted value
+        A converted value.
     """
+
     a = 1.0993
     b = 0.0181
     d = 4.5
@@ -389,18 +398,19 @@ def transfer_function_Rec2020_12bit_to_linear(v):
 
 def transfer_function_Rec1886_to_linear(v):
     """
-    The Rec.1886 transfer function
+    The Rec.1886 transfer function.
 
     Parameters
     ----------
     v : float
-        The normalized value to pass through the function
+        The normalized value to pass through the function.
 
     Returns
     -------
     float
-        A converted value
+        A converted value.
     """
+
     g = 2.4
     Lw = 1
     Lb = 0
@@ -423,14 +433,14 @@ def create_colorspaces(lut_directory,
     Parameters
     ----------
     lut_directory : str or unicode 
-        The directory to use when generating LUTs
+        The directory to use when generating LUTs.
     lut_resolution_1d : int
-        The resolution of generated 1D LUTs
+        The resolution of generated 1D LUTs.
 
     Returns
     -------
     list
-         A list of colorspaces for general colorspaces and encodings 
+         A list of colorspaces for general colorspaces and encodings.
     """
 
     colorspaces = []
@@ -524,6 +534,12 @@ def create_colorspaces(lut_directory,
         from_reference_values=[aces.ACES_AP0_TO_XYZ, XYZ_to_Rec709],
         aliases=['srgb_texture'])
     colorspaces.append(cs)
+
+    # Keep a reference to this space
+    cs_srgb = copy.deepcopy(cs)
+    cs_srgb.name = "sRGB - Texture"
+    cs_srgb.family = "Input/Generic"
+    cs_srgb.aliases = []
 
     # -------------------------------------------------------------------------
     # Rec 709
@@ -664,7 +680,7 @@ def create_colorspaces(lut_directory,
     # using Bradford chromatic adaptation
     AP0_to_ADOBEWIDEGAMUT = [1.3809814778, -0.1158594573, -0.2651220205,
                              0.0057015535, 1.0402949043, -0.0459964578,
-                            -0.0038908746, -0.0597091815, 1.0636000561]
+                             -0.0038908746, -0.0597091815, 1.0636000561]
 
     cs = create_matrix_colorspace(
         'Linear - Adobe Wide Gamut RGB',
@@ -672,22 +688,35 @@ def create_colorspaces(lut_directory,
         aliases=['lin_adobewidegamutrgb'])
     colorspaces.append(cs)
 
-    return colorspaces
+    # Alphabetize the color spaces, based on name
+    colorspaces = sorted(colorspaces, key=lambda e: e.name)
+
+    # -------------------------------------------------------------------------
+    # sRGB - Input Colorspace
+    # -------------------------------------------------------------------------
+    # A copy of the sRGB - Texture space that is part of the Input family
+
+    # Make this the first colorspace. in the list
+    colorspaces.insert(0, cs_srgb)
+
+    # -------------------------------------------------------------------------
+    # Role assignments
+    # -------------------------------------------------------------------------
+    role_overrides = {'matte_paint': cs_srgb.name}
+
+    return colorspaces, role_overrides
 
 
 def create_raw():
     """
-    Creates the *raw* color space
-
-    Parameters
-    ----------
-    None
+    Creates the *raw* colorspace.
 
     Returns
     -------
     ColorSpace
-         *raw* and all its identifying information
+         *raw* and all its identifying information.
     """
+
     # *Raw* utility space
     name = 'Raw'
     raw = ColorSpace(name)

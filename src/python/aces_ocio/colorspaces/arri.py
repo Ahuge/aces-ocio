@@ -17,7 +17,7 @@ import aces_ocio.generate_lut as genlut
 from aces_ocio.utilities import ColorSpace, mat44_from_mat33, sanitize
 
 __author__ = 'ACES Developers'
-__copyright__ = 'Copyright (C) 2014 - 2015 - ACES Developers'
+__copyright__ = 'Copyright (C) 2014 - 2016 - ACES Developers'
 __license__ = ''
 __maintainer__ = 'ACES Developers'
 __email__ = 'aces@oscars.org'
@@ -34,34 +34,34 @@ def create_log_c(gamut,
                  lut_resolution_1d,
                  aliases):
     """
-    Creates colorspace covering the conversion from LogC to ACES, with various transfer 
-    functions and encoding gamuts covered
+    Creates a colorspace covering the conversion from LogC to ACES, with
+    various transfer functions and encoding gamuts covered.
 
     Parameters
     ----------
     gamut : str
         The name of the encoding gamut to use.
     transfer_function : str
-        The name of the transfer function to use
+        The name of the transfer function to use.
     exposure_index : str
-        The exposure index to use
+        The exposure index to use.
     lut_directory : str or unicode 
-        The directory to use when generating LUTs
+        The directory to use when generating LUTs.
     lut_resolution_1d : int
-        The resolution of generated 1D LUTs
+        The resolution of generated 1D LUTs.
     aliases : list of str
-        Aliases for this colorspace
+        Aliases for this colorspace.
 
     Returns
     -------
     ColorSpace
-         A ColorSpace container class referencing the LUTs, matrices and identifying
-         information for the requested colorspace.
+         A ColorSpace container class referencing the LUTs, matrices and
+         identifying information for the requested colorspace.
     """
 
     name = '%s (EI%s) - %s' % (transfer_function, exposure_index, gamut)
     if transfer_function == '':
-        name = 'Linear - ARRI %s' % gamut
+        name = 'Linear - ALEXA %s' % gamut
     if gamut == '':
         name = 'Curve - %s (EI%s)' % (transfer_function, exposure_index)
 
@@ -81,69 +81,64 @@ def create_log_c(gamut,
         cs.allocation_type = ocio.Constants.ALLOCATION_LG2
         cs.allocation_vars = [-8, 5, 0.00390625]
 
-    IDT_maker_version = '0.08'
+    IDT_maker_version = '0.09'
 
-    nominal_EI = 400
-    black_signal = 0.003907
+    nominal_exposure_index = 400
+    black_signal = 16 / 4095 # 0.003907
     mid_gray_signal = 0.01
-    encoding_gain = 0.256598
-    encoding_offset = 0.391007
+    encoding_gain = 500 / 1023 * 0.525 # 0.256598
+    encoding_offset = 400 / 1023 # 0.391007
 
-    def gain_for_EI(EI):
-        return (math.log(EI / nominal_EI) / math.log(2) * (
-            0.89 - 1) / 3 + 1) * encoding_gain
+    def gain_for_EI(ei):
+        return (math.log(ei / nominal_exposure_index) / math.log(2) * (0.89 - 1) / 3 + 1) * encoding_gain
 
-    def log_c_inverse_parameters_for_EI(EI):
+    def hermite_weights(x, x1, x2):
+        d = x2 - x1
+        s = (x - x1) / d
+        s2 = 1 - s
+        return [  (1 + 2*s) * s2 * s2,
+                 (3 - 2*s) * s * s,
+                 d * s * s2 * s2,
+                 -d * s * s * s2 ]
+
+    def normalized_sensor_to_relative_exposure(ns, ei):
+        return (ns - black_signal) * (0.18 / (mid_gray_signal * nominal_exposure_index / ei))
+
+    def normalized_log_c_to_linear(code_value, exposure_index):
         cut = 1 / 9
         slope = 1 / (cut * math.log(10))
         offset = math.log10(cut) - slope * cut
-        gain = EI / nominal_EI
+        gain = exposure_index / nominal_exposure_index
         gray = mid_gray_signal / gain
         # The higher the EI, the lower the gamma.
-        enc_gain = gain_for_EI(EI)
+        enc_gain = (math.log(gain) / math.log(2) * (0.89 - 1) / 3 + 1) * encoding_gain
         enc_offset = encoding_offset
         for i in range(0, 3):
             nz = ((95 / 1023 - enc_offset) / enc_gain - offset) / slope
             enc_offset = encoding_offset - math.log10(1 + nz) * enc_gain
-
-        a = 1 / gray
-        b = nz - black_signal / gray
-        e = slope * a * enc_gain
-        f = enc_gain * (slope * b + offset) + enc_offset
-
-        # Ensuring we can return relative exposure.
-        s = 4 / (0.18 * EI)
-        t = black_signal
-        b += a * t
-        a *= s
-        f += e * t
-        e *= s
-
-        return {'a': a,
-                'b': b,
-                'cut': (cut - b) / a,
-                'c': enc_gain,
-                'd': enc_offset,
-                'e': e,
-                'f': f}
-
-    def normalized_log_c_to_linear(code_value, exposure_index):
-        p = log_c_inverse_parameters_for_EI(exposure_index)
-        breakpoint = p['e'] * p['cut'] + p['f']
-        if code_value > breakpoint:
-            linear = ((pow(10, (code_value - p['d']) / p['c']) -
-                       p['b']) / p['a'])
-        else:
-            linear = (code_value - p['f']) / p['e']
-        return linear
+        # see if we need to bring the hermite spline into play
+        xm = math.log10((1 - black_signal) / gray + nz) * enc_gain + enc_offset
+        if xm > 1.0:
+            if code_value > 0.8:
+                hw = hermite_weights(code_value, 0.8, 1)
+                d = 0.2 / (xm - 0.8)
+                v = [ 0.8, xm, 1.0, 1 / (d * d) ]
+                # reconstruct code value from spline
+                code_value = 0
+                for i in range(0, 4):
+                    code_value += (hw[i] * v[i])
+        code_value = (code_value - enc_offset) / enc_gain
+        # compute normalized sensor value
+        ns = pow(10, code_value) if (code_value - offset) / slope > cut else (code_value - offset) / slope
+        ns = (ns - nz) * gray + black_signal
+        return normalized_sensor_to_relative_exposure(ns, exposure_index)
 
     cs.to_reference_transforms = []
 
     if transfer_function == 'V3 LogC':
         data = array.array('f', '\0' * lut_resolution_1d * 4)
         for c in range(lut_resolution_1d):
-            data[c] = normalized_log_c_to_linear(c / (lut_resolution_1d - 1),
-                                                 int(exposure_index))
+            data[c] = normalized_log_c_to_linear(c / (lut_resolution_1d - 1), int(exposure_index))
 
         lut = '%s_to_linear.spi1d' % (
             '%s_%s' % (transfer_function, exposure_index))
@@ -183,23 +178,24 @@ def create_colorspaces(lut_directory, lut_resolution_1d):
     Parameters
     ----------
     lut_directory : str or unicode 
-        The directory to use when generating LUTs
+        The directory to use when generating LUTs.
     lut_resolution_1d : int
-        The resolution of generated 1D LUTs
+        The resolution of generated 1D LUTs.
 
     Returns
     -------
     list
-         A list of colorspaces for ARRI cameras and encodings 
+         A list of colorspaces for ARRI cameras and encodings.
     """
 
     colorspaces = []
 
+    # Ensure the ARRI 1D LUTs are at minimum 16 bit
+    lut_resolution_1d = max(65536, lut_resolution_1d)
+
     transfer_function = 'V3 LogC'
     gamut = 'Wide Gamut'
 
-    # EIs = [160, 200, 250, 320, 400, 500, 640, 800,
-    # 1000, 1280, 1600, 2000, 2560, 3200]
     EIs = [160, 200, 250, 320, 400, 500, 640, 800,
            1000, 1280, 1600, 2000, 2560, 3200]
     default_EI = 800
@@ -212,7 +208,7 @@ def create_colorspaces(lut_directory, lut_resolution_1d):
             EI,
             lut_directory,
             lut_resolution_1d,
-            ['%sei%s_%s' % ('logc3', str(EI), 'arriwide')])
+            ['%sei%s_%s' % ('logc3', str(EI), 'alexawide')])
         colorspaces.append(log_c_EI_full)
 
     # Linearization Only
@@ -233,7 +229,7 @@ def create_colorspaces(lut_directory, lut_resolution_1d):
         default_EI,
         lut_directory,
         lut_resolution_1d,
-        ['%s_%s' % ('lin', 'arriwide')])
+        ['%s_%s' % ('lin', 'alexawide')])
     colorspaces.append(log_c_EI_primaries)
 
     return colorspaces

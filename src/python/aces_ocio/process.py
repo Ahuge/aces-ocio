@@ -13,7 +13,7 @@ import sys
 import traceback
 
 __author__ = 'ACES Developers'
-__copyright__ = 'Copyright (C) 2014 - 2015 - ACES Developers'
+__copyright__ = 'Copyright (C) 2014 - 2016 - ACES Developers'
 __license__ = ''
 __maintainer__ = 'ACES Developers'
 __email__ = 'aces@oscars.org'
@@ -28,17 +28,17 @@ __all__ = ['read_text',
 
 def read_text(text_file):
     """
-    Object description.
+    Reads given text file and returns its content.
 
     Parameters
     ----------
-    parameter : type
-        Parameter description.
+    text_file : str or unicode
+        Text file to read.
 
     Returns
     -------
-    type
-         Return value description.
+    str or unicode
+         Text file content.
     """
 
     # TODO: Investigate if check is needed.
@@ -53,17 +53,19 @@ def read_text(text_file):
 
 def write_text(text, text_file):
     """
-    Object description.
+    Write given content to given text file.
 
     Parameters
     ----------
-    parameter : type
-        Parameter description.
+    text : str or unicode
+         Content.
+    text_file : str or unicode
+        Text file to read.
 
     Returns
     -------
-    type
-         Return value description.
+    str or unicode
+         Text file content.
     """
 
     # TODO: Investigate if check is needed.
@@ -275,10 +277,10 @@ class Process:
              Return value description.
         """
 
-        write_dict = {}
-        write_dict['logHandle'] = log_handle
-        write_dict['indentationLevel'] = indentation_level
-        write_dict['format'] = format
+        write_dict = {
+            'logHandle': log_handle,
+            'indentationLevel': indentation_level,
+            'format': format}
 
         if log_handle:
             self.write_log_header(write_dict)
@@ -634,10 +636,10 @@ class ProcessList(Process):
              Return value description.
         """
 
-        write_dict = {}
-        write_dict['logHandle'] = log_handle
-        write_dict['indentationLevel'] = indentation_level
-        write_dict['format'] = format
+        write_dict = {
+            'logHandle': log_handle,
+            'indentationLevel': indentation_level,
+            'format': format}
 
         if log_handle:
             self.write_log_header(write_dict)

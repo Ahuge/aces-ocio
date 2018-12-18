@@ -16,7 +16,7 @@ import aces_ocio.generate_lut as genlut
 from aces_ocio.utilities import ColorSpace, mat44_from_mat33
 
 __author__ = 'ACES Developers'
-__copyright__ = 'Copyright (C) 2014 - 2015 - ACES Developers'
+__copyright__ = 'Copyright (C) 2014 - 2016 - ACES Developers'
 __license__ = ''
 __maintainer__ = 'ACES Developers'
 __email__ = 'aces@oscars.org'
@@ -32,27 +32,27 @@ def create_s_log(gamut,
                  lut_resolution_1d,
                  aliases):
     """
-    Creates colorspace covering the conversion from Sony spaces to ACES, with various 
-    transfer functions and encoding gamuts covered
+    Creates colorspace covering the conversion from Sony spaces to ACES, with
+    various transfer functions and encoding gamuts covered.
 
     Parameters
     ----------
     gamut : str
         The name of the encoding gamut to use.
     transfer_function : str
-        The name of the transfer function to use
+        The name of the transfer function to use.
     lut_directory : str or unicode 
-        The directory to use when generating LUTs
+        The directory to use when generating LUTs.
     lut_resolution_1d : int
-        The resolution of generated 1D LUTs
+        The resolution of generated 1D LUTs.
     aliases : list of str
-        Aliases for this colorspace
+        Aliases for this colorspace.
 
     Returns
     -------
     ColorSpace
-         A ColorSpace container class referencing the LUTs, matrices and identifying
-         information for the requested colorspace.
+         A ColorSpace container class referencing the LUTs, matrices and
+         identifying information for the requested colorspace.
     """
 
     name = '%s - %s' % (transfer_function, gamut)
@@ -229,14 +229,14 @@ def create_colorspaces(lut_directory, lut_resolution_1d):
     Parameters
     ----------
     lut_directory : str or unicode 
-        The directory to use when generating LUTs
+        The directory to use when generating LUTs.
     lut_resolution_1d : int
-        The resolution of generated 1D LUTs
+        The resolution of generated 1D LUTs.
 
     Returns
     -------
     list
-         A list of colorspaces for Sony cameras and encodings 
+         A list of colorspaces for Sony cameras and encodings.
     """
 
     colorspaces = []

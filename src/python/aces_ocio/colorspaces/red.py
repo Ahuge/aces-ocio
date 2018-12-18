@@ -16,7 +16,7 @@ import aces_ocio.generate_lut as genlut
 from aces_ocio.utilities import ColorSpace, mat44_from_mat33
 
 __author__ = 'ACES Developers'
-__copyright__ = 'Copyright (C) 2014 - 2015 - ACES Developers'
+__copyright__ = 'Copyright (C) 2014 - 2016 - ACES Developers'
 __license__ = ''
 __maintainer__ = 'ACES Developers'
 __email__ = 'aces@oscars.org'
@@ -32,27 +32,27 @@ def create_red_log_film(gamut,
                         lut_resolution_1d,
                         aliases=None):
     """
-    Creates colorspace covering the conversion from RED spaces to ACES, with various 
-    transfer functions and encoding gamuts covered
+    Creates colorspace covering the conversion from RED spaces to ACES, with
+    various transfer functions and encoding gamuts covered.
 
     Parameters
     ----------
     gamut : str
         The name of the encoding gamut to use.
     transfer_function : str
-        The name of the transfer function to use
+        The name of the transfer function to use.
     lut_directory : str or unicode 
-        The directory to use when generating LUTs
+        The directory to use when generating LUTs.
     lut_resolution_1d : int
-        The resolution of generated 1D LUTs
+        The resolution of generated 1D LUTs.
     aliases : list of str
-        Aliases for this colorspace
+        Aliases for this colorspace.
 
     Returns
     -------
     ColorSpace
-         A ColorSpace container class referencing the LUTs, matrices and identifying
-         information for the requested colorspace.
+         A ColorSpace container class referencing the LUTs, matrices and
+         identifying information for the requested colorspace.
     """
 
     if aliases is None:
@@ -89,14 +89,38 @@ def create_red_log_film(gamut,
 
         return (code_linear - black_linear) / (1 - black_linear)
 
+    def log3g10_to_linear(code_value):
+        a = 0.224282
+        b = 155.975327
+        c = 0.01
+
+        normalized_log = code_value / 1023.0
+
+        mirror = 1.0
+        if normalized_log < 0.0:
+            mirror = -1.0
+            normalized_log = -normalized_log
+
+        linear = (pow(10.0, normalized_log / a) - 1) / b
+        linear = linear * mirror - c
+
+        return linear
+
     cs.to_reference_transforms = []
 
-    if transfer_function == 'REDlogFilm':
-        data = array.array('f', '\0' * lut_resolution_1d * 4)
-        for c in range(lut_resolution_1d):
-            data[c] = cineon_to_linear(1023 * c / (lut_resolution_1d - 1))
+    if transfer_function:
+        if transfer_function == 'REDlogFilm':
+            lut_name = "CineonLog"
+            data = array.array('f', '\0' * lut_resolution_1d * 4)
+            for c in range(lut_resolution_1d):
+                data[c] = cineon_to_linear(1023 * c / (lut_resolution_1d - 1))
+        elif transfer_function == 'REDLog3G10':
+            lut_name = "REDLog3G10"
+            data = array.array('f', '\0' * lut_resolution_1d * 4)
+            for c in range(lut_resolution_1d):
+                data[c] = log3g10_to_linear(1023 * c / (lut_resolution_1d - 1))
 
-        lut = 'CineonLog_to_linear.spi1d'
+        lut = '%s_to_linear.spi1d' % lut_name
         genlut.write_SPI_1d(
             os.path.join(lut_directory, lut),
             0,
@@ -153,6 +177,13 @@ def create_red_log_film(gamut,
                                         0.065164, 0.836932, 0.097901,
                                         -0.019281, 0.016362, 1.002889]),
             'direction': 'forward'})
+    elif gamut == 'REDWideGamutRGB':
+        cs.to_reference_transforms.append({
+            'type': 'matrix',
+            'matrix': mat44_from_mat33([0.785043, 0.083844, 0.131118,
+                                        0.023172, 1.087892, -0.111055,
+                                        -0.073769, -0.314639, 1.388537]),
+            'direction': 'forward'})
 
     cs.from_reference_transforms = []
     return cs
@@ -165,14 +196,14 @@ def create_colorspaces(lut_directory, lut_resolution_1d):
     Parameters
     ----------
     lut_directory : str or unicode 
-        The directory to use when generating LUTs
+        The directory to use when generating LUTs.
     lut_resolution_1d : int
-        The resolution of generated 1D LUTs
+        The resolution of generated 1D LUTs.
 
     Returns
     -------
     list
-         A list of colorspaces for RED cameras and encodings 
+         A list of colorspaces for RED cameras and encodings.
     """
 
     colorspaces = []
@@ -226,6 +257,14 @@ def create_colorspaces(lut_directory, lut_resolution_1d):
         ['rlf_rc4'])
     colorspaces.append(red_log_film_color4)
 
+    red_log_film_color5 = create_red_log_film(
+        'REDWideGamutRGB',
+        'REDLog3G10',
+        lut_directory,
+        lut_resolution_1d,
+        ['rl3g10_rwg'])
+    colorspaces.append(red_log_film_color5)
+
     # Linearization only
     red_log_film = create_red_log_film(
         '',
@@ -234,6 +273,14 @@ def create_colorspaces(lut_directory, lut_resolution_1d):
         lut_resolution_1d,
         ['crv_rlf'])
     colorspaces.append(red_log_film)
+
+    red_log_film2 = create_red_log_film(
+        '',
+        'REDLog3G10',
+        lut_directory,
+        lut_resolution_1d,
+        ['crv_rl3g10'])
+    colorspaces.append(red_log_film2)
 
     # Primaries only
     red_dragon = create_red_log_film(
@@ -283,5 +330,13 @@ def create_colorspaces(lut_directory, lut_resolution_1d):
         lut_resolution_1d,
         ['lin_rc4'])
     colorspaces.append(red_color4)
+
+    red_color5 = create_red_log_film(
+        'REDWideGamutRGB',
+        '',
+        lut_directory,
+        lut_resolution_1d,
+        ['lin_rwg'])
+    colorspaces.append(red_color5)
 
     return colorspaces

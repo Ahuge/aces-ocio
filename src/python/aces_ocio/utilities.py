@@ -15,7 +15,7 @@ from collections import OrderedDict
 import PyOpenColorIO as ocio
 
 __author__ = 'ACES Developers'
-__copyright__ = 'Copyright (C) 2014 - 2015 - ACES Developers'
+__copyright__ = 'Copyright (C) 2014 - 2016 - ACES Developers'
 __license__ = ''
 __maintainer__ = 'ACES Developers'
 __email__ = 'aces@oscars.org'
@@ -51,17 +51,13 @@ class ColorSpace(object):
                  allocation_vars=None,
                  aces_transform_id=None):
         """
-        Constructor for ColorSpace container class
+        Constructor for ColorSpace container class.
 
         Parameters
         ----------
         name : str or unicode
-            Name of the colorspace
+            Name of the colorspace.
         All other arguments are optional
-
-        Returns
-        -------
-        None
         """
 
         if aliases is None:
@@ -270,8 +266,8 @@ def colorspace_prefixed_name(colorspace):
 
     Parameters
     ----------
-    colorspace : Colorspace
-        Colorspace to prefix.
+    colorspace : ColorSpace
+        ColorSpace to prefix.
 
     Returns
     -------

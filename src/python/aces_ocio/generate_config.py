@@ -1120,9 +1120,9 @@ def write_config(config, config_path, sanity_check=True):
     if sanity_check:
         try:
             config.sanityCheck()
-        except Exception, e:
-            print e
-            print 'Configuration was not written due to a failed Sanity Check'
+        except Exception as e:
+            print(e)
+            print('Configuration was not written due to a failed Sanity Check')
             return
 
     with open(config_path, mode='w') as fp:
